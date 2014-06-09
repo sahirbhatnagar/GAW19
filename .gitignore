@@ -14,3 +14,4 @@ figure/*
 # Ignore RNA_seq data #
 #######################
 data
+*.gitignore~
