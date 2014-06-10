@@ -6,17 +6,32 @@
 # NOTE: you need to change your working directory to where the data is
 ##################################
 
-setwd("~/Documents/GAW19/")
+setwd("~/git_repositories/GAW19/data/")
 library(data.table)
 library(bit64)
 library(plotrix)
 
+
+# Genotype Files ----------------------------------------------------------
+
 filename <- "chr21-geno.csv"
-DT <- fread(filename, nrows=10, select=c("snp","T2DG0200001"))
-DT <- fread(filename, select=c("snp"))
-DT
+filename <- "chr21t.csv"
+DT.geno <- fread(filename)
+DT.geno.t <- as.data.table(t(DT.geno[,2:ncol(DT.geno), with=FALSE]), keep.rownames=TRUE)
+setnames(DT.geno.t,"rn","ID")
+setkey(DT.geno.t,ID)
 
-str(gene.exp)
-colnames(gene.exp)
 
-read.table
+# PED file -------------------------------------------------------------
+
+DT.ped <- fread("PED.csv")
+setkey(DT.ped,ID)
+tables()
+
+DT.all <- DT.ped[DT.geno.t]
+
+setcolorder(DT.all,c("PEDNUM","ID",colnames(DT.all)[-1:-2]))
+
+
+source("http://bioconductor.org/biocLite.R")
+biocLite("GWASTools")
