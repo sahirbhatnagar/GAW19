@@ -6,7 +6,7 @@
 # NOTE: you need to change your working directory to where the data is
 ##################################
 
-setwd("~/git_repositories/GAW19/data/")
+#setwd("~/git_repositories/GAW19/data/")
 library(data.table)
 library(bit64)
 library(plotrix)
@@ -14,6 +14,7 @@ library(stringr)
 library(doParallel)
 registerDoParallel(cores = 4)
 library(foreach)
+
 
 
 # Genotype Files ----------------------------------------------------------
@@ -73,7 +74,7 @@ read.fwf
 # Break up genotypes NEW - This works --------------------------------------------------
 
 rm(DT)
-filename <- "chr21-geno.csv"
+filename <- "chr21-geno.csv.gz"
 DT <- fread(filename)#, select=2:300)#, nrows=10) #, nrows=200000)
 out_names <- paste("V", 1:(2*ncol(DT)), sep="_")
 invar1 <- names(DT)
@@ -84,6 +85,7 @@ for (i in seq_along(invar1)) {
 }
 
 
+system(paste("gunzip ",filename))
 
 # DT[1:25,c(1,2,299:305), with=FALSE]
 # for (i in seq_along(invar1)) {
