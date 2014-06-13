@@ -107,6 +107,5 @@ system(paste("gunzip ",filename))
 # leave this one as is, this is in the proper format as per
 # http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#tr 
 DT.ped <- fread("PED.csv")
-DT.ped
 write.table(DT.ped, file="trans.tfam",col.names=FALSE,row.names=FALSE, quote=FALSE)
 
