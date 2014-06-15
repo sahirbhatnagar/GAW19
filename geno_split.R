@@ -1,7 +1,7 @@
 ##################################
 # R source code file used to split genotypes into two columns
 # Created by Sahir, June 12, 2014
-# Updated June 13, 2014
+# Updated June 14, 2014
 # hosted on Github repo 'sahirbhatnagar/gaw19'
 # NOTE: you need to change your working directory to where the data is
 ##################################
@@ -29,11 +29,15 @@ filename <- "~/share/sy/GAW19/data/chr21-geno.csv"
 # this function will create the .tped file in the format:
 # chromosome number | snp identifier | genetic distance (cM) | base pair | Subject Genotypes (each allele in individual column)
 # and the map file in the format: chromosome number | snp identifier | genetic distance (cM) | base pair
-data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10) {
+# use this for creating the file used in PLINK (the output of this function will include
+# the every individual in the families, including those 430 for which there is no genotype data)
+data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc=100) {
     #filename: path and filename or just the filename of genotype file
     #select: use all the data or a subset of it, if "all" then nrows and ncols is ignored
     #nrows: # of rows to select
     #ncols: # of columns to select
+    #col.alloc: # # of columns to allocate to data.table::alloc.col 
+    #select.all=FALSE; nrows=5; ncols=960
   
     #read in SNPs
     DT <- if (select.all) fread(filename) else fread(filename, select=1:ncols, nrows=nrows) 
@@ -41,23 +45,45 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10) {
     #remove column of SNP Id's because we only want to split the genotypes 
     DT[,snp:=NULL]
     
+    #get subject ID's for which we have genotype information
+    id.geno <- colnames(DT)
+    
+    # Differences between genotype and family file 
+    # read in family file
+    DT.tfam <- fread("PED.csv")
+    fam.id <- DT.tfam$ID
+    
+    #ID's with missing genotypes
+    missing.geno <- setdiff(fam.id, id.geno)
+    
+    alloc.col(DT,col.alloc)
+    for (i in seq_along(missing.geno)) {
+      set(DT, i=NULL, j=missing.geno[i], value="XX")
+    }
+    
+    setcolorder(DT, fam.id)
+    
     #used for deleting columns of grouped SNPs after
     n.col.DT <- ncol(DT)
     
-    #read in SNP ID's
-    DT.snp <- if (select.all) fread(filename, select=1) else fread(filename, select=1, nrows=nrows)
-    #set the keys 
-    setkey(DT.snp, snp)
-    
-    out_names <- paste("V", 1:(2*ncol(DT)), sep="_")
+    #out_names <- paste("V", 1:(2*ncol(DT)), sep="_")
+    out_names=NULL
+    for (i in 1:length(fam.id)){
+      out_names <- c(out_names, paste(fam.id[i],1,sep="_"), paste(fam.id[i],2,sep="_"))
+    }
+        
     invar1 <- names(DT)
-    if (!select.all & ncols>50 | select.all) alloc.col(DT,3000)
-    
+    alloc.col(DT, col.alloc)
     for (i in seq_along(invar1)) {
           set(DT, i=NULL, j=out_names[2*i-1], value=substr(DT[[invar1[i]]],1,1))
           set(DT, i=NULL, j=out_names[2*i], value=substr(DT[[invar1[i]]],2,2))
     }
 
+    #read in SNP ID's
+    DT.snp <- if (select.all) fread(filename, select=1) else fread(filename, select=1, nrows=nrows)
+    #set the keys 
+    setkey(DT.snp, snp)
+    
     #remove grouped SNPs
     DT[,seq.int(1,n.col.DT,1):=NULL, with=FALSE]
 
@@ -74,14 +100,108 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10) {
 
     write.table(DT.final, file=paste("chr",DT.snp$chr[1],".tped",sep=""), col.names=FALSE,
                 row.names=FALSE, quote=FALSE)
+    
+    return(DT.final)
 
 }
 
-data.clean(filename, select.all=TRUE)
+
+# use this function for local calculations only (this will not include missing genotype data)
+data.clean.incomplete <- function(filename, select.all=FALSE, select.all.rows=FALSE, nrows=10, ncols=10, col.alloc=100) {
+  #filename: path and filename or just the filename of genotype file
+  #select: use all the data or a subset of it, if "all" then nrows and ncols is ignored
+  #nrows: # of rows to select
+  #ncols: # of columns to select
+  #col.alloc: # # of columns to allocate to data.table::alloc.col 
+  #select.all=FALSE; nrows=5; ncols=960
+  
+  #read in SNPs
+  DT <- if (select.all) fread(filename) else if (select.all.rows) fread(filename, select=1:ncols) else fread(filename, select=1:ncols, nrows=nrows) 
+  
+  #remove column of SNP Id's because we only want to split the genotypes 
+  DT[,snp:=NULL]
+  
+  #get subject ID's for which we have genotype information
+  id.geno <- colnames(DT)
+  
+#   # Differences between genotype and family file 
+#   # read in family file
+#   DT.tfam <- fread("PED.csv")
+#   fam.id <- DT.tfam$ID
+#   
+#   #ID's with missing genotypes
+#   missing.geno <- setdiff(fam.id, id.geno)
+#   
+#   alloc.col(DT,col.alloc)
+#   for (i in seq_along(missing.geno)) {
+#     set(DT, i=NULL, j=missing.geno[i], value="XX")
+#   }
+#   
+#   setcolorder(DT, fam.id)
+  
+  #used for deleting columns of grouped SNPs after
+  n.col.DT <- ncol(DT)
+  
+  #out_names <- paste("V", 1:(2*ncol(DT)), sep="_")
+  out_names=NULL
+  for (i in 1:length(id.geno)){
+    out_names <- c(out_names, paste(id.geno[i],1,sep="_"), paste(id.geno[i],2,sep="_"))
+  }
+  
+  invar1 <- names(DT)
+  alloc.col(DT, col.alloc)
+  for (i in seq_along(invar1)) {
+    set(DT, i=NULL, j=out_names[2*i-1], value=substr(DT[[invar1[i]]],1,1))
+    set(DT, i=NULL, j=out_names[2*i], value=substr(DT[[invar1[i]]],2,2))
+  }
+  
+  #read in SNP ID's
+  #DT.snp <- if (select.all) fread(filename, select=1) else fread(filename, select=1, nrows=nrows)
+  DT.snp <- if (select.all) fread(filename, select=1) else if (select.all.rows) fread(filename, select=1) else fread(filename, select=1, nrows=nrows) 
+
+  #set the keys 
+  setkey(DT.snp, snp)
+  
+  #remove grouped SNPs
+  DT[,seq.int(1,n.col.DT,1):=NULL, with=FALSE]
+  
+  #extract chromosome and base pair
+  DT.snp$chr <- as.numeric(sub(" .*", "", gsub("\\_", " ", as.character(DT.snp$snp))))
+  DT.snp$base <- as.numeric(sub(" ", "", sub(DT.snp$chr[1],"",gsub("\\_", " ", as.character(DT.snp$snp)),perl=TRUE)))
+  DT.snp$cM <- 0
+  
+  setcolorder(DT.snp, c("chr","snp","cM","base"))
+  write.table(DT.snp, file=paste("chr",DT.snp$chr[1],".map",sep=""),col.names=FALSE,
+              row.names=FALSE, quote=FALSE)
+  
+  DT.final <- cbind(DT.snp,DT)
+  
+  write.table(DT.final, file=paste("chr",DT.snp$chr[1],".tped",sep=""), col.names=FALSE,
+              row.names=FALSE, quote=FALSE)
+  
+  return(DT.final)
+  
+}
+
+
+
+
+
+#DT <- fread(filename, nrows=5) 
+
+dat <- data.clean(filename, select.all=FALSE, nrows=239352, ncols=2, col.alloc=3000)
+
 
 # PED file -------------------------------------------------------------
 
 # leave this one as is, this is in the proper format as per
 # http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#tr 
-#DT.ped <- fread("PED.csv")
-#write.table(DT.ped, file="trans.tfam",col.names=FALSE,row.names=FALSE, quote=FALSE)
+DT.tfam <- fread("PED.csv")
+write.table(DT.tfam, file="trans.tfam",col.names=FALSE,row.names=FALSE, quote=FALSE)
+
+
+
+
+
+
+

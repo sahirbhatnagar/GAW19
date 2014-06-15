@@ -22,7 +22,7 @@ library(foreach)
 # chromosome number | snp identifier | genetic distance (cM) | base pair
 filename <- "chr9-geno.csv"
 filename <- "chr21-geno.csv"
-DT.geno <- fread(filename, select=1) #, nrows=200000)
+DT.geno <- fread(filename, select=1)#,nrows=1) #, nrows=200000)
 setkey(DT.geno, snp)
 
 #extract chromosome and base pair
@@ -109,3 +109,26 @@ system(paste("gunzip ",filename))
 DT.ped <- fread("PED.csv")
 write.table(DT.ped, file="trans.tfam",col.names=FALSE,row.names=FALSE, quote=FALSE)
 
+
+
+
+# Differences between genotype and family file ----------------------------
+
+geno.id <- colnames(DT.geno)[-1]
+fam.id <- DT.ped$ID
+
+
+
+k <- lapply(fam.id, function(i) grep(i,geno.id, perl=TRUE, value=FALSE))
+j <- do.call(rbind, k)
+
+
+#ID's with missing genotypes
+missing.geno <- setdiff(fam.id, geno.id)
+length(missing.geno)
+l <- replicate(length(missing.geno), rep(0,nrow(DT.geno)), simplify=FALSE)
+DT.o <- setDT(l)
+
+
+
+zeros <- data.frame(rep(0,))
