@@ -6,10 +6,10 @@
 # NOTE: you need to change your working directory to where the data is
 ##################################
 
-LIB_LOC = "~/share/greenwood.group/Rlibs/sahir.bhatnagar"
+#LIB_LOC = "~/share/greenwood.group/Rlibs/sahir.bhatnagar"
 
-#LIB_LOC = "/home/sahir/R/x86_64-pc-linux-gnu-library/3.1"
-#setwd("~/git_repositories/GAW19/data")
+LIB_LOC = "/home/sahir/R/x86_64-pc-linux-gnu-library/3.1"
+setwd("~/git_repositories/GAW19/data")
 
 library(data.table, lib.loc=LIB_LOC)
 library(bit, lib.loc=LIB_LOC)
@@ -20,8 +20,8 @@ library(doParallel, lib.loc=LIB_LOC)
 registerDoParallel(cores = 4)
 library(foreach, lib.loc=LIB_LOC)
 
-filename <- "~/share/sy/GAW19/data/chr21-geno.csv"
-#filename = "chr21-geno.csv"
+#filename <- "~/share/sy/GAW19/data/chr21-geno.csv"
+filename = "chr21-geno.csv"
 
 #file.names <- list.files(pattern = "*geno.csv")
 
@@ -107,7 +107,7 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc
 
 
 # use this function for local calculations only (this will not include missing genotype data)
-data.clean.incomplete <- function(filename, select.all=FALSE, select.all.rows=FALSE, nrows=10, ncols=10, col.alloc=100) {
+data.clean.incomplete <- function(filename, select.all=FALSE, select.all.cols=FALSE, nrows, ncols, col.alloc=4000) {
   #filename: path and filename or just the filename of genotype file
   #select: use all the data or a subset of it, if "all" then nrows and ncols is ignored
   #nrows: # of rows to select
@@ -116,7 +116,7 @@ data.clean.incomplete <- function(filename, select.all=FALSE, select.all.rows=FA
   #select.all=FALSE; nrows=5; ncols=960
   
   #read in SNPs
-  DT <- if (select.all) fread(filename) else if (select.all.rows) fread(filename, select=1:ncols) else fread(filename, select=1:ncols, nrows=nrows) 
+  DT <- if (select.all) fread(filename) else if (select.all.cols) fread(filename, nrows=nrows) else fread(filename, select=1:ncols, nrows=nrows) 
   
   #remove column of SNP Id's because we only want to split the genotypes 
   DT[,snp:=NULL]
@@ -157,7 +157,7 @@ data.clean.incomplete <- function(filename, select.all=FALSE, select.all.rows=FA
   
   #read in SNP ID's
   #DT.snp <- if (select.all) fread(filename, select=1) else fread(filename, select=1, nrows=nrows)
-  DT.snp <- if (select.all) fread(filename, select=1) else if (select.all.rows) fread(filename, select=1) else fread(filename, select=1, nrows=nrows) 
+  DT.snp <- if (select.all) fread(filename, select=1) else fread(filename, select=1, nrows=nrows) 
 
   #set the keys 
   setkey(DT.snp, snp)
@@ -185,13 +185,33 @@ data.clean.incomplete <- function(filename, select.all=FALSE, select.all.rows=FA
 
 
 
-
-
 #DT <- fread(filename, nrows=5) 
 
-dat <- data.clean(filename, select.all=FALSE, nrows=239352, ncols=2, col.alloc=3000)
+#dat <- data.clean(filename, select.all=FALSE, nrows=239352, ncols=2, col.alloc=3000)
 
 
+DT <- data.clean.incomplete(filename, select.all=FALSE, select.all.cols=TRUE, nrows=6, col.alloc=3025)
+warnings()
+f=1
+#################################################################3
+DT[snp=="21_9411318",1:7,with=FALSE]
+
+
+
+do.call(rbind,apply(DT[,-1:-4, with=FALSE],1,table))
+
+library(plyr)
+
+ddply(DT, "snp", function(x) {
+  apply(DT[f,5:12, with=FALSE],1,function(i) sum(i=="T"))
+  apply(DT[f,-1:-4, with=FALSE],1,function(i) sum(i=="T"))
+  apply(DT[f,-1:-4, with=FALSE],1,function(i) sum(i=="G"))
+  apply(DT[f,-1:-4, with=FALSE],1,function(i) sum(i=="C"))
+  apply(DT[f,-1:-4, with=FALSE],1,function(i) sum(i=="X"))
+  data.frame(cv.count = cv)
+})
+
+example(data.table)
 # PED file -------------------------------------------------------------
 
 # leave this one as is, this is in the proper format as per
@@ -202,6 +222,6 @@ write.table(DT.tfam, file="trans.tfam",col.names=FALSE,row.names=FALSE, quote=FA
 
 
 
-
+DT<-fread("chr21.tped", )
 
 
