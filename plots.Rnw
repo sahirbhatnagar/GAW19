@@ -1,0 +1,42 @@
+\documentclass{article}
+
+\begin{document}
+<<load_data, cache=TRUE, echo=TRUE,eval=TRUE>>=
+setwd("~/git_repositories/GAW19/data/")
+DT.frq <- as.data.table(read.table("chr21.frq", header=TRUE))
+DT.hwe <- as.data.table(read.table("chr21.hwe", header=TRUE))
+setkey(DT.hwe,TEST)
+DT.all <- cbind(DT.frq,DT.hwe["ALL"])
+DT.all[,log.expect.p:=-log10((1:nrow(DT.all)-0.5)/nrow(DT.all))]
+DT.all[,log.sorted.p:=-log10(sort(P))]
+@
+
+\begin{figure}
+<<1a, fig.keep='last', message=FALSE, echo=FALSE, fig.align='center', fig.show='asis'>>=
+DT.frq[,hist(MAF)]
+@
+\caption{Histogram of Minor Allele Frequency}
+\label{fig:1}
+\end{figure}
+
+
+\begin{figure}
+<<2, out.width='.7\\linewidth', fig.keep='last', message=FALSE, echo=FALSE, fig.align='center', fig.show='asis'>>=
+DT.all[,plot(MAF,-log10(P))]
+@
+\caption{$-\log_{10}$(p-value of HWE) vs. Minor Allele Frequency}
+\label{fig:2}
+\end{figure}
+
+
+\begin{figure}
+<<3, out.width='.7\\linewidth', fig.keep='last', message=FALSE, echo=FALSE, fig.align='center', fig.show='asis'>>=
+DT.all[,plot(log.expect.p,log.sorted.p)]
+abline(a=0,b=1)
+@
+\caption{$-\log_{10}$(observed p-value of HWE) vs. $-\log_{10}$(expected p-value of HWE)}
+\label{fig:3}
+\end{figure}
+
+
+\end{document}
