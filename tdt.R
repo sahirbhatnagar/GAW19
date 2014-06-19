@@ -21,3 +21,49 @@ manhattan(DT.tdt, highlight="21_10742678")
 
 qq(DT.tdt$P, main="Q-Q plot of TDT p-values")
 
+
+
+
+# Use kinship package to break pedigrees ----------------------------------
+setwd("~/git_repositories/GAW19/data")
+DT.tfam <- fread("PED.csv")
+
+library(kinship2)
+
+set(DT.tfam, i=NULL, j="id", value=as.integer(substr(DT.tfam[["ID"]],5,11)))
+set(DT.tfam, i=NULL, j="dadid", value=as.integer(substr(DT.tfam[["FA"]],5,11)))
+set(DT.tfam, i=NULL, j="momid", value=as.integer(substr(DT.tfam[["MO"]],5,11)))
+#replace NA with 0
+f_dowle3 = function(DT) {
+  # either of the following for loops
+  
+  # by name :
+  #for (j in names(DT))
+  # set(DT,which(is.na(DT[[j]])),j,0)
+  
+  # or by number (slightly faster than by name) :
+  for (j in seq_len(ncol(DT)))
+    set(DT,which(is.na(DT[[j]])),j,value=0)
+}
+f_dowle3(DT.tfam)
+str(DT.tfam)
+
+ped <- with(DT.tfam,pedigree(id,dadid,momid,SEX,affected=rep(1,nrow(DT.tfam)),famid=PEDNUM))
+plot(ped['3'])
+
+#get subject ID's for which we have genotype information
+filename = "chr21-geno.csv"
+DT <- fread(filename, nrows=1) 
+id.geno <- colnames(DT)[-1]
+fam.id <- DT.tfam$ID
+
+#ID's with missing genotypes
+missing.geno <- setdiff(fam.id, id.geno)
+
+#create geno availability column
+set(DT.tfam, i=NULL,j="avail", value=DT.tfam[["ID"]] %in% id.geno)
+
+shrink1.B30 <- pedigree.shrink(ped=ped['2'], avail=DT.tfam[PEDNUM==2]$avail, maxBits=30)
+as.data.frame(shrink1.B30$pedObj)
+
+plot(shrink1.B30$pedObj)

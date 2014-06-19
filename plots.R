@@ -8,15 +8,20 @@
 
 setwd("~/git_repositories/GAW19/data/")
 rm(list=ls())
-#DT.frq[["CHR"]][1]
+DT.hwe <- DT.hwe[TEST=="ALL"]
 #system(paste("mkdir", DT.frq[["CHR"]][1], sep=" "))
 
 DT.frq <- as.data.table(read.table("chr21.frq", header=TRUE))
 DT.hwe <- as.data.table(read.table("chr21.hwe", header=TRUE))
-setkey(DT.hwe,SNP)
+
+DT.hwe2 <- as.data.table(read.table("chr21.hwe2.hwe", header=TRUE))
+DT.hwe2 <- DT.hwe2[TEST=="ALL"]
+
+
+setkey(DT.hwe2,SNP)
 #setkey(DT.hwe,NULL)
 setkey(DT.frq, SNP)
-DT.all <- DT.hwe[TEST=="ALL"][DT.frq]
+DT.all <- DT.hwe2[DT.frq]
 DT.all[MAF!=0][,plot(MAF,-log10(P))]
 #rm(DT.all)
 
