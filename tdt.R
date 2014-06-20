@@ -28,7 +28,8 @@ as.character(DT.tdt[order(DT.tdt$P)[1:5]][["SNP"]])
 
 manhattan(DT.tdt, highlight=as.character(DT.tdt[order(DT.tdt$P)[1:5]][["SNP"]]))
 
-qq(DT.tdt$P, main="Q-Q plot of TDT p-values")
+qq(as.numeric(DT.tdt[!is.na(P)][["P"]]), main="Q-Q plot of TDT p-values")
+str(DT.tdt)
 which.min
 max
 

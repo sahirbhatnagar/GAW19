@@ -19,7 +19,7 @@ library(stringr, lib.loc=LIB_LOC)
 library(doParallel, lib.loc=LIB_LOC)
 registerDoParallel(cores = 10)
 library(foreach, lib.loc=LIB_LOC)
-library(ff, lib.loc=LIB_LOC)
+
 
 #filename <- "~/share/sy/GAW19/data/chr21-geno.csv"
 #filename = "chr21-geno.csv"
@@ -32,23 +32,25 @@ library(ff, lib.loc=LIB_LOC)
 # and the map file in the format: chromosome number | snp identifier | genetic distance (cM) | base pair
 # use this for creating the file used in PLINK (the output of this function will include
 # the every individual in the families, including those 430 for which there is no genotype data)
-data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc=100) {
+data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc=100, chr.digits=2) {
     #filename: path and filename or just the filename of genotype file
     #select: use all the data or a subset of it, if "all" then nrows and ncols is ignored
     #nrows: # of rows to select
     #ncols: # of columns to select
     #col.alloc: # # of columns to allocate to data.table::alloc.col 
+    #chr.digits: # of digits in chromosome number
 
-    #select.all=FALSE; nrows=5; ncols=960; filename = "chr9-geno.csv";col.alloc=4500
+    select.all=FALSE; nrows=5; ncols=960; filename = "chr19-geno.csv";col.alloc=4500;chr.digits=2
   
     #read in SNPs
     DT <- if (select.all) fread(filename) else fread(filename, select=1:ncols, nrows=nrows) 
+    #DT.orig <- if (select.all) fread(filename) else fread(filename, select=1:ncols, nrows=nrows) 
     
     #remove column of SNP Id's because we only want to split the genotypes 
-    DT[,snp:=NULL]
+    #DT[,snp:=NULL]
     
     #get subject ID's for which we have genotype information
-    id.geno <- colnames(DT)
+    id.geno <- colnames(DT)[-1]
     
     # Differences between genotype and family file 
     # read in family file
@@ -64,18 +66,18 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc
       set(DT, i=NULL, j=missing.geno[i], value="XX")
     }
     
-    setcolorder(DT, fam.id)
+    setcolorder(DT, c("snp",fam.id))
     
     #used for deleting columns of grouped SNPs after
-    n.col.DT <- ncol(DT)
+    n.col.DT <- ncol(DT)-1
     
-    out_names <- paste("V", 1:(2*ncol(DT)), sep="_")
+    out_names <- paste("V", 1:(2*n.col.DT), sep="_")
 #     out_names=NULL
 #     for (i in 1:length(fam.id)){
 #       out_names <- c(out_names, paste(fam.id[i],1,sep="_"), paste(fam.id[i],2,sep="_"))
 #     }
         
-    invar1 <- names(DT)
+    invar1 <- names(DT)[-1]
     #alloc.col(DT, col.alloc)
     
 #   mclapply
@@ -85,32 +87,46 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc
 #           set(DT, i=NULL, j=out_names[2*i], value=substr(DT[[invar1[i]]],2,2))
 #     }
 
+    cat("Starting to split genotypes")
 
     for (i in seq_along(invar1)) {
           set(DT, i=NULL, j=out_names[2*i-1], value=substr(DT[[invar1[i]]],1,1))
           set(DT, i=NULL, j=out_names[2*i], value=substr(DT[[invar1[i]]],2,2))
     }
-
-    #read in SNP ID's
-    DT.snp <- if (select.all) fread(filename, select=1) else fread(filename, select=1, nrows=nrows)
-    #set the keys 
-    setkey(DT.snp, snp)
     
-    #remove grouped SNPs
-    DT[,seq.int(1,n.col.DT,1):=NULL, with=FALSE]
+    cat("Splitting genotypes complete")
+    #read in SNP ID's
+    #DT.snp <- if (select.all) fread(filename, select=1) else fread(filename, select=1, nrows=nrows)
+    #set the keys 
+    #setkey(DT.snp, snp)
+    
+        
 
+    #remove grouped SNPs
+    DT[,seq.int(2,n.col.DT+1,1):=NULL, with=FALSE]
+    
+    #add SNP's to DT of genotypes so we can merge faster after
+    #set(DT, i=NULL, j="snp", value=DT.snp[["snp"]])
+    #setkey(DT,snp)
+    
     #extract chromosome and base pair
-    set(DT.snp, i=NULL, j="chr", value=as.numeric(sub(" .*", "", gsub("\\_", " ", as.character(DT.snp[["snp"]])))) )
-    set(DT.snp, i=NULL, j="base", value=as.numeric(sub(" ", "", sub(DT.snp[["chr"]][1],"",gsub("\\_", " ", as.character(DT.snp[["snp"]])),perl=TRUE))) )
-    set(DT.snp, i=NULL, j="cM", value=0)
+    #substr(DT[["snp"]],1,chr.digits)
+    
+cat("Starting to extract chromosome position")
+
+    set(DT, i=NULL, j="chr", value= substr(DT[["snp"]],1,chr.digits))
+    set(DT, i=NULL, j="base", value = if (chr.digits==2) sub("[0-9][0-9]_","",DT[["snp"]]) else sub("[0-9]_","",DT[["snp"]]) )
+    #set(DT, i=NULL, j="base", value=(sub(" ", "", sub(DT[["chr"]][1],"",gsub("\\_", " ", as.character(DT[["snp"]])),perl=TRUE))) )
+    set(DT, i=NULL, j="cM", value=0) 
+cat("Finished extracting chromosome position")
+
 #     DT.snp$chr <- as.numeric(sub(" .*", "", gsub("\\_", " ", as.character(DT.snp$snp))))
 #     DT.snp$base <- as.numeric(sub(" ", "", sub(DT.snp$chr[1],"",gsub("\\_", " ", as.character(DT.snp$snp)),perl=TRUE)))
 #     DT.snp$cM <- 0
     
-    setcolorder(DT.snp, c("chr","snp","cM","base"))
-    
-    DT.final <- cbind(DT.snp,DT)
-    
+    setcolorder(DT, c("chr","snp","cM","base",out_names))  
+    #DT.final <- cbind(DT.snp,DT)
+    #DT.final <- DT.snp[DT]
     
     #setwd(paste(getwd(),"/chr",DT.snp$chr[1],sep=""))
 #     write.table(DT.final, file=paste("chr",DT.snp[["chr"]][1],".tped",sep=""), col.names=FALSE,
@@ -121,20 +137,20 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc
 # con <- dbConnect(drv, dbname = "test.tped")
 # dbWriteTable(con, "arrests", DT.final)
 # dbDisconnect(con)
+#write.matrix(DT,file="test.tped")
+#     write.table(as.matrix(DT), file=paste("chr",DT[["chr"]][1],".tped",sep=""), col.names=FALSE,
+#                              row.names=FALSE, quote=FALSE)
 
-    write.table(as.matrix(DT.final), file=paste("chr",DT.snp[["chr"]][1],".tped",sep=""), col.names=FALSE,
-                             row.names=FALSE, quote=FALSE)
+    #rm(DT.final)
 
-    rm(DT.final)
-
-    write.table(DT.tfam, file="trans.tfam",col.names=FALSE,row.names=FALSE, quote=FALSE)
+#     write.table(DT.tfam, file="trans.tfam",col.names=FALSE,row.names=FALSE, quote=FALSE)
     
-    #return(DT.final)
-    system(paste("mkdir ","chr",DT.snp[["chr"]][1], sep=""))
-    system(paste("mv ","chr",DT.snp[["chr"]][1],".tped ",getwd(),"/chr",DT.snp$chr[1],sep=""))
-    system(paste("mv ","trans.tfam ",getwd(),"/chr",DT.snp[["chr"]][1],sep=""))
-    system(paste("cp mztwins.txt ",getwd(),"/chr",DT.snp[["chr"]][1],sep=""))
-    system(paste("cp plink.sh ",getwd(),"/chr",DT.snp[["chr"]][1],sep=""))
+    return(DT)
+    system(paste("mkdir ","chr",DT[["chr"]][1], sep=""))
+    system(paste("mv ","chr",DT[["chr"]][1],".tped ",getwd(),"/chr",DT[["chr"]][1],sep=""))
+    system(paste("mv ","trans.tfam ",getwd(),"/chr",DT[["chr"]][1],sep=""))
+    system(paste("cp mztwins.txt ",getwd(),"/chr",DT[["chr"]][1],sep=""))
+    system(paste("cp plink.sh ",getwd(),"/chr",DT[["chr"]][1],sep=""))
     
     #system(paste("./plink.sh ",DT.snp$chr[1],sep=""))
 
@@ -144,7 +160,14 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc
 
 #raw_data <- list.files(pattern="*-geno.csv")
 #data.clean("chr9-geno.csv", select.all=FALSE, nrows=5,ncols=950, col.alloc=4500)
-data.clean("chr7-geno.csv", select.all=TRUE, col.alloc=4500)
+DT <- data.clean("chr7-geno.csv", select.all=TRUE, col.alloc=4500, chr.digits=1)
+
+
+
+#invar1 <- names(DT)
+#microbenchmark(substr(DT[[invar1[1L]]],2,2), sapply(strsplit(DT[[invar1[1L]]],''),`[`,2L),do.call(rbind, strsplit(DT[[invar1[1]]], split = ""))[,2], times=5)
+
+
 
 
 

@@ -8,7 +8,7 @@
 
 setwd("~/git_repositories/GAW19/data/")
 library(lattice)
-chromosome <- 17
+chromosome <- 21
 #rm(list=ls())
 #system(paste("mkdir", DT.frq[["CHR"]][1], sep=" "))
 
