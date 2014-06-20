@@ -32,9 +32,10 @@ f_dowle3 = function(DT) {
 #replace NA's with -9 which is default missing for plink phenotype files
 f_dowle3(DT.phen)
 
-# add phenotype where everyone is affected except missing
-set(DT.phen, which(DT.phen[["HTN_1"]]==-9), "EVERYONE_AFFECTED", value=-9)
-set(DT.phen, which(DT.phen[["HTN_1"]]!=-9), "EVERYONE_AFFECTED", value=1)
+# add affected status for everyone
+set(DT.phen, i=NULL, j="EVERYONE_AFFECTED", value=1)
+#set(DT.phen, which(DT.phen[["HTN_1"]]==-9), "EVERYONE_AFFECTED", value=-9)
+#set(DT.phen, which(DT.phen[["HTN_1"]]!=-9), "EVERYONE_AFFECTED", value=1)
 
 # add phenotype where Cases --> Missing and Controls --> Cases
 # table(DT.phen$HTN_1);table(DT.phen$HTN_2)

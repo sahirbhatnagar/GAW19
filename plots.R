@@ -7,63 +7,80 @@
 ##################################
 
 setwd("~/git_repositories/GAW19/data/")
-rm(list=ls())
-DT.hwe <- DT.hwe[TEST=="ALL"]
+library(lattice)
+chromosome <- 17
+#rm(list=ls())
 #system(paste("mkdir", DT.frq[["CHR"]][1], sep=" "))
 
-DT.frq <- as.data.table(read.table("chr21.frq", header=TRUE))
-DT.hwe <- as.data.table(read.table("chr21.hwe", header=TRUE))
 
-DT.hwe2 <- as.data.table(read.table("chr21.hwe2.hwe", header=TRUE))
-DT.hwe2 <- DT.hwe2[TEST=="ALL"]
+# -log10(HWE pvalue) vs MAF -----------------------------------------------
 
-
-setkey(DT.hwe2,SNP)
-#setkey(DT.hwe,NULL)
+DT.frq <- as.data.table(read.table(paste("chr",chromosome,".frq",sep=""), header=TRUE))
+DT.hwe <- as.data.table(read.table(paste("chr",chromosome,".hwe",sep=""), header=TRUE))
+DT.hwe <- DT.hwe[TEST=="ALL"]
+setkey(DT.hwe,SNP)
 setkey(DT.frq, SNP)
-DT.all <- DT.hwe2[DT.frq]
+DT.all <- DT.hwe[DT.frq]
 DT.all[MAF!=0][,plot(MAF,-log10(P))]
-#rm(DT.all)
+xyplot(-log10(P) ~ MAF, DT.all, grid = TRUE)
+DT.all[,plot(MAF,-log10(P))]
 
-DT.all <- cbind(DT.frq,DT.hwe["ALL"])
-DT.all[,log.expect.p:=-log10((1:nrow(DT.all)-0.5)/nrow(DT.all))]
-DT.all[,log.sorted.p:=-log10(sort(P))]
+#DT.hwe2 <- as.data.table(read.table("chr21.hwe2.hwe", header=TRUE))
+#DT.hwe2 <- DT.hwe2[TEST=="ALL"]
+#setkey(DT.hwe,NULL)
 
-#data for founders only
-DT.frq.found <- as.data.table(read.table("founders.frq", header=TRUE))
-DT.hwe.found <- as.data.table(read.table("founders.hwe", header=TRUE))
-setkey(DT.hwe.found,SNP)
-setkey(DT.frq.found,SNP)
-DT.all.found <- DT.hwe.found[TEST=="ALL"][DT.frq.found]
-DT.all.found[MAF!=0][,plot(MAF,-log10(P))]
-
-DT.all.found[,log10p:=-log10(P+1e-10)]
-DT.all.found[,plot(MAF,log10p)]
-
-
-plot(DT.all.found[,"log10p", with=FALSE])
+# # Vince data to check my code
+# DT <- fread("21.snp-stats")
+# DT[HWE!=0][,plot(MAF, HWE)]
+# 
+# a=-log10(DT[HWE!=0][1:10, ,][["HWE"]])
+# b=DT[HWE!=0][1:10, ,][["MAF"]]
+# plot(b,a, main="plot ab")
+xyplot(HWE ~ MAF, DT, grid = TRUE)
 
 
-DT.all.found[,log.expect.p:=-log10((1:nrow(DT.all.found)-0.5)/nrow(DT.all.found))]
-DT.all.found[,log.sorted.p:=-log10(sort(P))]
+# Possible explanation for unexpected HWE vs MAF plot ---------------------
 
+DT.tfam <- fread("PED.csv")
+
+#get subject ID's for which we have genotype information
+filename = "chr21-geno.csv"
+DT <- fread(filename, nrows=1) 
+id.geno <- colnames(DT)[-1]
+fam.id <- DT.tfam$ID
+
+#ID's with missing genotypes
+missing.geno <- setdiff(fam.id, id.geno)
+
+# founder ID's 
+founder.id <- DT.tfam[FA==0][["ID"]]
+
+# 296 founders are missing genotype information
+# so out of the 413 founders only 413-296=117 (30% have genotype information)
+sum(!(founder.id %in% id.geno))
+missing.geno.founder <- setdiff(founder.id, id.geno)
+
+
+# Manhattan Plot ----------------------------------------------------------
 
 DT.tdt.every.affect <- as.data.table(read.table("everyone_affected.tdt", header=TRUE))
 setkey(DT.tdt.every.affect,SNP)
 DT.tdt.switch <- as.data.table(read.table("switch_pheno.tdt", header=TRUE))
 setkey(DT.tdt.switch,SNP)
 
+manhattan(DT.tdt.every.affect)
+manhattan(DT.tdt.switch)
+
+qq(DT.tdt.every.affect$P, main="Q-Q plot of TDT p-values")
+qq(DT.tdt.switch$P, main="Q-Q plot of TDT p-values")
 
 
-DT.frq[,hist(MAF)]
-DT.frq.found[,hist(MAF)]
 
 
+# Q-Q plot ----------------------------------------------------------------
 
-DT.all[,plot(MAF,-log10(P))]
-DT.all.found[,plot(MAF,-log10(P))]
-
-
+DT.all[,log.expect.p:=-log10((1:nrow(DT.all)-0.5)/nrow(DT.all))]
+DT.all[,log.sorted.p:=-log10(sort(P))]
 
 DT.all[,plot(log.expect.p,log.sorted.p)]
 abline(a=0,b=1)
@@ -72,12 +89,6 @@ abline(a=0,b=1)
 
 
 
-manhattan(DT.tdt.every.affect)
-manhattan(DT.tdt.switch)
 
-
-
-qq(DT.tdt.every.affect$P, main="Q-Q plot of TDT p-values")
-qq(DT.tdt.switch$P, main="Q-Q plot of TDT p-values")
 
 
