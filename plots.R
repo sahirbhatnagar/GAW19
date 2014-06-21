@@ -6,7 +6,7 @@
 # NOTE: you need to change your working directory to where the data is
 ##################################
 
-setwd("~/git_repositories/GAW19/data/")
+setwd("~/git_repositories/GAW19/data/chr21test/")
 library(lattice)
 chromosome <- 21
 #rm(list=ls())
