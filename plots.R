@@ -6,9 +6,9 @@
 # NOTE: you need to change your working directory to where the data is
 ##################################
 
-setwd("~/git_repositories/GAW19/data/chr21test/")
+setwd("~/git_repositories/GAW19/data/")
 library(lattice)
-chromosome <- 21
+chromosome <- 7
 #rm(list=ls())
 #system(paste("mkdir", DT.frq[["CHR"]][1], sep=" "))
 
@@ -16,14 +16,21 @@ chromosome <- 21
 # -log10(HWE pvalue) vs MAF -----------------------------------------------
 
 DT.frq <- as.data.table(read.table(paste("chr",chromosome,".frq",sep=""), header=TRUE))
-DT.hwe <- as.data.table(read.table(paste("chr",chromosome,".hwe",sep=""), header=TRUE))
-DT.hwe <- DT.hwe[TEST=="ALL"]
+DT.hwe <- as.data.table(read.table(paste("chr",chromosome,".hwe",sep=""), header=TRUE))[TEST=="ALL"]
+DT.hwe2 <- as.data.table(read.table(paste("chr",chromosome,".hwe2.hwe",sep=""), header=TRUE))[TEST=="ALL"]
+
 setkey(DT.hwe,SNP)
 setkey(DT.frq, SNP)
+setkey(DT.hwe2, SNP)
+
 DT.all <- DT.hwe[DT.frq]
-DT.all[MAF!=0][,plot(MAF,-log10(P))]
-xyplot(-log10(P) ~ MAF, DT.all, grid = TRUE)
-DT.all[,plot(MAF,-log10(P))]
+DT.all2 <- DT.hwe2[DT.frq]
+xyplot(-log10(P) ~ MAF, DT.all, grid = TRUE, main=paste("chromosome ",chromosome, sep=" "))
+xyplot(-log10(P) ~ MAF, DT.all2[MAF!=0], grid = TRUE, main=paste("chromosome ",chromosome," HWE standard", sep=" "))
+#DT.all[P!=1][,plot(MAF,-log10(P))]
+#DT.all[,plot(MAF,-log10(P))]
+
+
 
 #DT.hwe2 <- as.data.table(read.table("chr21.hwe2.hwe", header=TRUE))
 #DT.hwe2 <- DT.hwe2[TEST=="ALL"]
