@@ -8,25 +8,26 @@
 
 setwd("~/git_repositories/GAW19/data/")
 library(lattice)
-chromosome <- 7
+chromosome <- 1
 #rm(list=ls())
 #system(paste("mkdir", DT.frq[["CHR"]][1], sep=" "))
 
 
 # -log10(HWE pvalue) vs MAF -----------------------------------------------
 
-DT.frq <- as.data.table(read.table(paste("chr",chromosome,".frq",sep=""), header=TRUE))
-DT.hwe <- as.data.table(read.table(paste("chr",chromosome,".hwe",sep=""), header=TRUE))[TEST=="ALL"]
-DT.hwe2 <- as.data.table(read.table(paste("chr",chromosome,".hwe2.hwe",sep=""), header=TRUE))[TEST=="ALL"]
+DT.frq <- fread(paste("chr",chromosome,"frq.csv",sep=""))
+#DT.hwe <- as.data.table(read.table(paste("chr",chromosome,".hwe",sep=""), header=TRUE))[TEST=="ALL"]
+DT.hwe2 <- fread(paste("chr",chromosome,"hwe2.csv",sep=""))
+DT.hwe2 <- DT.hwe2[V3=="ALL"]
 
 setkey(DT.hwe,SNP)
 setkey(DT.frq, SNP)
-setkey(DT.hwe2, SNP)
+setkey(DT.hwe2, V2)
 
 DT.all <- DT.hwe[DT.frq]
 DT.all2 <- DT.hwe2[DT.frq]
 xyplot(-log10(P) ~ MAF, DT.all, grid = TRUE, main=paste("chromosome ",chromosome, sep=" "))
-xyplot(-log10(P) ~ MAF, DT.all2[MAF!=0], grid = TRUE, main=paste("chromosome ",chromosome," HWE standard", sep=" "))
+xyplot(-log10(V9) ~ MAF, DT.all2, grid = TRUE, main=paste("chromosome ",chromosome," HWE standard", sep=" "))
 #DT.all[P!=1][,plot(MAF,-log10(P))]
 #DT.all[,plot(MAF,-log10(P))]
 
