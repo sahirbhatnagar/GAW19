@@ -7,9 +7,9 @@
 ##################################
 
 setwd("~/git_repositories/GAW19/data")
-chromosome <- 21
+chromosome <- 1
 # TDT results -------------------------------------------------------------
-DT.tdt <- as.data.table(read.table(paste("chr",chromosome,".tdt",sep=""), header=TRUE))
+DT.tdt <- fread(paste("chr",chromosome,"tdt.csv",sep=""))
 setkey(DT.tdt,SNP)
 
 #check their chi-square statistic

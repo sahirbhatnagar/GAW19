@@ -16,17 +16,17 @@ chromosome <- 1
 # -log10(HWE pvalue) vs MAF -----------------------------------------------
 
 DT.frq <- fread(paste("chr",chromosome,"frq.csv",sep=""))
-#DT.hwe <- as.data.table(read.table(paste("chr",chromosome,".hwe",sep=""), header=TRUE))[TEST=="ALL"]
-DT.hwe2 <- fread(paste("chr",chromosome,"hwe2.csv",sep=""))
-DT.hwe2 <- DT.hwe2[V3=="ALL"]
+DT.hwe <- fread(paste("chr",chromosome,"hwe.csv",sep="")) 
+head(DT.frq);head(DT.hwe)
+#DT.hwe2 <- DT.hwe2[V3=="ALL"]
 
-setkey(DT.hwe,SNP)
-setkey(DT.frq, SNP)
-setkey(DT.hwe2, V2)
-
+setkey(DT.hwe,V2);setkey(DT.frq, SNP)
+#setkey(DT.hwe2, V2)
+str(DT.hwe)
 DT.all <- DT.hwe[DT.frq]
-DT.all2 <- DT.hwe2[DT.frq]
-xyplot(-log10(P) ~ MAF, DT.all, grid = TRUE, main=paste("chromosome ",chromosome, sep=" "))
+DT.all[order(DT.all$V9)[1:5]]
+#DT.all2 <- DT.hwe2[DT.frq]
+xyplot(-log10(V9) ~ MAF, DT.all, grid = TRUE, main=paste("chromosome ",chromosome, sep=" "))
 xyplot(-log10(V9) ~ MAF, DT.all2, grid = TRUE, main=paste("chromosome ",chromosome," HWE standard", sep=" "))
 #DT.all[P!=1][,plot(MAF,-log10(P))]
 #DT.all[,plot(MAF,-log10(P))]
@@ -48,7 +48,7 @@ xyplot(HWE ~ MAF, DT, grid = TRUE)
 
 
 # Possible explanation for unexpected HWE vs MAF plot ---------------------
-
+setwd("~/git_repositories/GAW19/data/")
 DT.tfam <- fread("PED.csv")
 
 #get subject ID's for which we have genotype information
@@ -68,6 +68,11 @@ founder.id <- DT.tfam[FA==0][["ID"]]
 sum(!(founder.id %in% id.geno))
 missing.geno.founder <- setdiff(founder.id, id.geno)
 
+
+seqid <- fread("~/git_repositories/GAW19/data/seq.id", header=F)
+
+#of the 413 founders, 91 have been actually sequenced
+sum((founder.id %in% seqid$V1))
 
 # Manhattan Plot ----------------------------------------------------------
 
@@ -98,5 +103,50 @@ abline(a=0,b=1)
 
 
 
+# Checking HWE calculations -----------------------------------------------
+library(lattice)
+setwd("~/git_repositories/GAW19/data/chr21")
+chromosome <- 21;chr.digits=nchar(chromosome)
+
+DT.frq <- fread(paste("chr",chromosome,"frq.csv",sep=""))
+DT.hwe <- fread(paste("chr",chromosome,"hwe.csv",sep=""), header=FALSE) 
+colnames(DT.hwe) <- c("CHR","SNP","TEST","A1","A2","aa","Aa","AA","O(HET)","E(HET)","pvalue")
+head(DT.hwe);head(DT.frq)
+setkey(DT.hwe,SNP);setkey(DT.frq, SNP)
+
+DT.all <- DT.hwe[DT.frq]
+head(DT.all)
+xyplot(-log10(pvalue) ~ MAF, DT.all, grid = TRUE, main=paste("chromosome ",chromosome, sep=" "))
+set(DT.all, i=NULL, j="my.maf", value=(2*DT.all[["aa"]]+DT.all[["Aa"]])/(2*(DT.all[["aa"]]+DT.all[["Aa"]]+DT.all[["AA"]])))
+set(DT.all, i=NULL, j="NOBS", value=(DT.all[["aa"]]+DT.all[["Aa"]]+DT.all[["AA"]]))
+set(DT.all, i=NULL, j="my.chisq", value= (DT.all[["aa"]] - DT.all[["NOBS"]]*(DT.all[["my.maf"]])^2)^2/(DT.all[["NOBS"]]*(DT.all[["my.maf"]])^2)+
+(DT.all[["Aa"]] - 2*DT.all[["NOBS"]]*(DT.all[["my.maf"]])*(1-DT.all[["my.maf"]]))^2/(2*DT.all[["NOBS"]]*(DT.all[["my.maf"]])*(1-DT.all[["my.maf"]]))+
+(DT.all[["AA"]] - DT.all[["NOBS"]]*(1-DT.all[["my.maf"]])^2)^2/(DT.all[["NOBS"]]*(1-DT.all[["my.maf"]])^2))
+set(DT.all, i=NULL, j="P", value=pchisq(DT.all[["my.chisq"]], 1, lower.tail=F))
+set(DT.all, i=NULL, j="BP", value = as.numeric(if (chr.digits==2) sub("[0-9][0-9]_","",DT.all[["SNP"]]) else sub("[0-9]_","",DT.all[["SNP"]])) )
+str(DT.all)
+
+#my pvalue
+manhattan(DT.all)
+
+#p-value from plink
+manhattan(DT.all, p="pvalue")
 
 
+
+
+p <- (2*81+10)/(2*(10+81))
+q <-1-p
+
+chisq <- (p^2*91-81)^2/(p^2*91)+(2*p*q*91-10)^2/(2*p*q*91)+(q^2*91-0)^2/(q^2*91)
+pchisq(chisq,1, lower.tail=F)
+
+head(DT.all[P<=0.1], n=10)
+
+
+table(DT.all[["NOBS"]])
+
+seqid <- fread("~/git_repositories/GAW19/data/seq.id", header=F)
+DT.tped <- fread("chr21.tped", header=F)
+
+hist(DT.all[["my.chisq"]])
