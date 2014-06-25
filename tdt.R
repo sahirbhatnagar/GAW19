@@ -39,6 +39,8 @@ max
 setwd("~/git_repositories/GAW19/data")
 DT.tfam <- fread("PED.csv")
 
+rm(list=ls())
+
 library(kinship2)
 
 set(DT.tfam, i=NULL, j="id", value=as.integer(substr(DT.tfam[["ID"]],5,11)))
@@ -82,9 +84,30 @@ missing.geno.founder <- setdiff(founder.id, id.geno)
 
 
 #create geno availability column
-set(DT.tfam, i=NULL,j="avail", value=DT.tfam[["ID"]] %in% id.geno)
+set(DT.tfam, i=NULL,j="id_avail", value=DT.tfam[["ID"]] %in% id.geno)
+set(DT.tfam, i=NULL,j="dad_avail", value=DT.tfam[["FA"]] %in% id.geno)
+set(DT.tfam, i=NULL,j="mom_avail", value=DT.tfam[["MO"]] %in% id.geno)
 
-shrink1.B30 <- pedigree.shrink(ped=ped['2'], avail=DT.tfam[PEDNUM==2]$avail, maxBits=10)
+
+j <- sapply(DT.tfam)
+
+
+shrink1.B30 <- pedigree.shrink(ped=ped['5'], avail=DT.tfam[PEDNUM==5]$avail, maxBits=5)
 as.data.frame(shrink1.B30$pedObj)
-
 plot(shrink1.B30$pedObj)
+
+
+
+# Nuclear families USE THIS ONE (MANUALLY FILTERED) -----------------------
+
+DT.tfam
+write.csv(DT.tfam[id_avail==TRUE & dad_avail==TRUE & mom_avail==TRUE], file="availgeno.csv")
+DT.tfam[id_avail==TRUE & dad_avail==TRUE & mom_avail==TRUE]
+length(unique(DT.tfam$PEDNUM))
+
+
+DT.tdt <- read.table("availgeno.csv", skip=1)
+nrow(DT.tdt)
+length(unique(DT.tdt$V2))
+
+write.table(DT.tdt, file="nuclear.fam",col.names=FALSE, row.names=FALSE, quote=FALSE)
