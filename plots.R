@@ -18,13 +18,14 @@ chromosome <- 1
 DT.frq <- fread(paste("chr",chromosome,"frq.csv",sep=""))
 DT.hwe <- fread(paste("chr",chromosome,"hwe.csv",sep="")) 
 head(DT.frq);head(DT.hwe)
-#DT.hwe2 <- DT.hwe2[V3=="ALL"]
+setnames(DT.hwe, c("V1","V2",))
+DT.hwe <- DT.hwe[V3=="ALL"]
 
 setkey(DT.hwe,V2);setkey(DT.frq, SNP)
 #setkey(DT.hwe2, V2)
 str(DT.hwe)
 DT.all <- DT.hwe[DT.frq]
-DT.all[order(DT.all$V9)[1:5]]
+DT.all[order(DT.all$V9)[1:3000]]
 #DT.all2 <- DT.hwe2[DT.frq]
 xyplot(-log10(V9) ~ MAF, DT.all, grid = TRUE, main=paste("chromosome ",chromosome, sep=" "))
 xyplot(-log10(V9) ~ MAF, DT.all2, grid = TRUE, main=paste("chromosome ",chromosome," HWE standard", sep=" "))
@@ -150,3 +151,22 @@ seqid <- fread("~/git_repositories/GAW19/data/seq.id", header=F)
 DT.tped <- fread("chr21.tped", header=F)
 
 hist(DT.all[["my.chisq"]])
+
+
+
+# Manhattan HWE -----------------------------------------------------------
+
+setwd("~/git_repositories/GAW19/data/")
+DT.hwe.seq <- fread("allhwe.csv")
+head(DT.hwe.seq)
+set
+nchar(DT.hwe.seq[["V1"]][1])
+set(DT.hwe.seq[1:5, , ], i=NULL, j="BP", value = sub('\\d*_','',DT.hwe.seq[["V2"]]))
+
+k <- DT.hwe.seq$V2[1:10]
+
+grep(k,".{1,2}_", perl=TRUE)
+gsub("[0-9]_.", "", k, perl=TRUE)
+str_split(k[1], "_")[[1]][2]
+library(stringr)
+
