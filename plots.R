@@ -16,22 +16,26 @@ chromosome <- 1
 # -log10(HWE pvalue) vs MAF -----------------------------------------------
 
 DT.frq <- fread(paste("chr",chromosome,"frq.csv",sep=""))
-DT.hwe <- fread(paste("chr",chromosome,"hwe.csv",sep="")) 
+DT.hwe <- fread(paste("chr",chromosome,"hwe.csv",sep=""), nrows=1000) 
 head(DT.frq);head(DT.hwe)
-setnames(DT.hwe, c("V1","V2",))
-DT.hwe <- DT.hwe[V3=="ALL"]
-
-setkey(DT.hwe,V2);setkey(DT.frq, SNP)
+setnames(DT.hwe, c("V1","V2","V9"), c("CHR", "SNP", "P"))
+set(DT.hwe, i=NULL, j="BP", value=as.numeric(sub("\\d*_","", DT.hwe[["SNP"]])))
+#DT.hwe <- DT.hwe[V3=="ALL"]
+setkey(DT.hwe,SNP);setkey(DT.frq, SNP)
 #setkey(DT.hwe2, V2)
 str(DT.hwe)
 DT.all <- DT.hwe[DT.frq]
-DT.all[order(DT.all$V9)[1:3000]]
+DT.all[order(DT.all$P)[1:100]]
 #DT.all2 <- DT.hwe2[DT.frq]
 xyplot(-log10(V9) ~ MAF, DT.all, grid = TRUE, main=paste("chromosome ",chromosome, sep=" "))
 xyplot(-log10(V9) ~ MAF, DT.all2, grid = TRUE, main=paste("chromosome ",chromosome," HWE standard", sep=" "))
 #DT.all[P!=1][,plot(MAF,-log10(P))]
 #DT.all[,plot(MAF,-log10(P))]
+library(reshape2)
 
+DT.hwe[, `:=` (aa=colsplit(DT.hwe[["V6"]],pattern="\\/", c("aa","Aa","aa"))[,1],
+               Aa=colsplit(DT.hwe[["V6"]],pattern="\\/", c("aa","Aa","aa"))[,2],
+               AA=colsplit(DT.hwe[["V6"]],pattern="\\/", c("aa","Aa","aa"))[,3])]
 
 
 #DT.hwe2 <- as.data.table(read.table("chr21.hwe2.hwe", header=TRUE))
