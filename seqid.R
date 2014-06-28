@@ -8,7 +8,7 @@
 ##################################
 
 setwd("~/git_repositories/GAW19/data")
-DT <- fread("seq.id", header=F)
+DT <- fread("sequenced.id", header=F)
 str(DT)
 set(DT, i=NULL, j="FID", value=as.numeric(substr(DT[["V1"]],5,6)))
 setcolorder(DT, c("FID","V1"))

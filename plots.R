@@ -37,6 +37,9 @@ DT.hwe[, `:=` (aa=colsplit(DT.hwe[["V6"]],pattern="\\/", c("aa","Aa","aa"))[,1],
                Aa=colsplit(DT.hwe[["V6"]],pattern="\\/", c("aa","Aa","aa"))[,2],
                AA=colsplit(DT.hwe[["V6"]],pattern="\\/", c("aa","Aa","aa"))[,3])]
 
+ll <- unlist(strsplit(DT.hwe$V6, "/", fixed=TRUE))
+idx <- seq(1, length(ll), by=3)
+DT.hwe[,`:=`(aa=ll[idx], Aa=ll[idx+1], AA=ll[idx+2])]
 
 #DT.hwe2 <- as.data.table(read.table("chr21.hwe2.hwe", header=TRUE))
 #DT.hwe2 <- DT.hwe2[TEST=="ALL"]
@@ -73,11 +76,20 @@ founder.id <- DT.tfam[FA==0][["ID"]]
 sum(!(founder.id %in% id.geno))
 missing.geno.founder <- setdiff(founder.id, id.geno)
 
-
-seqid <- fread("~/git_repositories/GAW19/data/seq.id", header=F)
+seqid <- fread("~/git_repositories/GAW19/data/sequenced.id", header=F)
 
 #of the 413 founders, 91 have been actually sequenced
-sum((founder.id %in% seqid$V1))
+sum((founder.id %in% seqid$V2))
+
+#id's who are founders and have been sequenced
+id_seq_found <- intersect(founder.id,seqid$V2)
+
+# id's who are not founders of the 959 individuals. so there should be 959-91=868
+id_not_seq_not_found <- setdiff(id.geno,id_seq_found)
+
+write.csv(id_not_found, file="not_seq_not_found.id", row.names=F, quote=F, col.names=F)
+
+
 
 # Manhattan Plot ----------------------------------------------------------
 
