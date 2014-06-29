@@ -32,13 +32,12 @@
 # and the map file in the format: chromosome number | snp identifier | genetic distance (cM) | base pair
 # use this for creating the file used in PLINK (the output of this function will include
 # the every individual in the families, including those 430 for which there is no genotype data)
-data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc=100, chr.digits=2) {
+data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc=100) {
     #filename: path and filename or just the filename of genotype file
     #select: use all the data or a subset of it, if "all" then nrows and ncols is ignored
     #nrows: # of rows to select
     #ncols: # of columns to select
     #col.alloc: # # of columns to allocate to data.table::alloc.col 
-    #chr.digits: # of digits in chromosome number
     #select.all=FALSE; nrows=400; ncols=960; filename = "chr21-geno.csv";col.alloc=4500;chr.digits=2
   
     #read in SNPs
@@ -83,8 +82,8 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc
   
     cat("Starting to extract chromosome position\n")
 
-    set(DT, i=NULL, j="chr", value= substr(DT[["snp"]],1,chr.digits))
-    set(DT, i=NULL, j="base", value = if (chr.digits==2) sub("[0-9][0-9]_","",DT[["snp"]]) else sub("[0-9]_","",DT[["snp"]]) )
+    set(DT, i=NULL, j="chr", value= as.numeric(sub("_\\d*","", DT[["snp"]])) )
+    set(DT, i=NULL, j="base", value = as.numeric(sub("\\d*_","", DT[["snp"]])) )
     set(DT, i=NULL, j="cM", value=0) 
     
     cat("Finished extracting chromosome position")
@@ -118,9 +117,9 @@ data.clean <- function(filename, select.all=FALSE, nrows=10, ncols=10, col.alloc
 #command line args should be --filename chr.digits 
 args <- commandArgs(trailingOnly=TRUE)
 
-DT <- data.clean(args[1], select.all=TRUE, col.alloc=4500, chr.digits=args[2]) 
+DT <- data.clean(args[1], select.all=TRUE, col.alloc=4500) 
 
-write.table(DT, file=tempfile(pattern=paste("chr",DT[["chr"]][1],".tped",sep=""), tmpdir=getwd()) ,
+write.table(DT, file=tempfile(pattern=paste("chr",DT[["chr"]][1],".tped",sep=""), tmpdir=getwd()),
             col.names=FALSE, row.names=FALSE, quote=FALSE)
 
 
