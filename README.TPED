@@ -1,0 +1,22 @@
+GAW19 Analysis
+
+1) To analyse data it is best to first split the original .csv files by running
+ ./datasplit.sh filename directory_to_create number_number_of_lines_to_split, e.g.
+./datasplit.sh chr19-geno.csv chr19 50000
+the above command will split chr19-geno.csv into files of 50000 (note the last files will have less than 50000)
+as well as copy all the necessary files for further analysis into the newly created directory
+
+2) Then you need to pass each of these files to geno_split.R. I have wrapped this function into a shell script
+which runs the function on each of the files in a for loop. The script is called writegeno.sh. Make sure the second
+argument in the for loop is changed for the appropriate number of digits in the chromosome. To run the script just move to the
+directory containing all the split csv files and run ./writegeno.sh
+Note that this script automatically submits to qsub for each of the files
+
+3) Once this is run, combine the newly creted chr**.tped** files using
+echo "cat chr19.tped* > chr19.tped" | qsub -cwd -N run1 -V
+
+4) To run the analysis, use the plink.sh script. You should also commit to qsub, e.g.
+echo "./plink.sh 19" | qsub -cwd -N run2 -V
+where 19 is the chromosome number
+
+5) To combine each of the chromosome results, see the combineresults.sh in ~/share/sy/GAW19

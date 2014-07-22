@@ -1,0 +1,78 @@
+README FILE FOR CREATING REGULAR PED FILES
+=====================================================
+
+1) Split the original csv files chr**-geno.csv using (make sure you are in
+the rawgeno folder)
+
+for i in  $(seq 1 2 21); do echo "sh ~/share/sy/GAW19/scripts/datasplit.sh chr$i-geno.csv ~/share/sy/GAW19/data/cleangeno/chr$i 20000" | qsub -cwd -N run$i -V ; done
+
+RUN THE REST OF THESE COMMANDS FROM THE ~/share/sy/GAW19/data/cleangeno folder
+2) Run geno_split_v2.R on each of the split csv files from part 1 using (use multiple for loops since only 100 jobs allowed to submit to qsub)
+
+for i in 15 17 19 21; do for file in chr$i/chr* ; do echo "Rscript ~/share/sy/GAW19/scripts/geno_split_v2.R $file ~/share/sy/GAW19/data/PED.csv chr$i" | qsub -cwd -N run$i -V ; done ; done
+
+for i in 11 13; do for file in chr$i/chr* ; do echo "Rscript ~/share/sy/GAW19/scripts/geno_split_v2.R $file ~/share/sy/GAW19/data/PED.csv chr$i" | qsub -cwd -N run$i -V ; done ; done
+
+for i in 7 9; do for file in chr$i/chr* ; do echo "Rscript ~/share/sy/GAW19/scripts/geno_split_v2.R $file ~/share/sy/GAW19/data/PED.csv chr$i" | qsub -cwd -N run$i -V ; done ; done
+
+for i in 5; do for file in chr$i/chr* ; do echo "Rscript ~/share/sy/GAW19/scripts/geno_split_v2.R $file ~/share/sy/GAW19/data/PED.csv chr$i" | qsub -cwd -N run$i -V ; done ; done
+
+for i in 3; do for file in chr$i/chr* ; do echo "Rscript ~/share/sy/GAW19/scripts/geno_split_v2.R $file ~/share/sy/GAW19/data/PED.csv chr$i" | qsub -cwd -N run$i -V ; done ; done
+
+for i in 1; do for file in chr$i/chr* ; do echo "Rscript ~/share/sy/GAW19/scripts/geno_split_v2.R $file ~/share/sy/GAW19/data/PED.csv chr$i" | qsub -cwd -N run$i -V ; done ; done
+
+3) Transpose each of the tped files created in step 2 (This step
+takes a long time, so do one by one instead)
+
+for i in 15 17 19 21; do for file in chr$i/chr$i.tped* ; do echo "sh ~/share/sy/GAW19/scripts/transpose.sh $file chr$i" | qsub -cwd -N run$i -V ; done ; done
+
+
+4) Join the files:
+for i in  $(seq 1 2 21);  do echo "sh ~/share/sy/GAW19/scripts/join.sh chr$i/ped* > chr$i/$i.temp.ped" | qsub -cwd -N run$i -V ; done
+
+4.2) Clear all the unecessary files
+for i in $(seq 1 2 21); do rm chr$i/chr**.csv ; rm chr$i/ped* ; rm chr$i/chr$i.tped*;done
+
+
+For the commands below, I have wrapped them into a script called 
+makeped.sh 
+run:
+for i in $(seq 1 2 21); do echo "sh ~/share/sy/GAW19/scripts/makeped.sh $i" | qsub -cwd -N run$i -V ; done
+
+----------------------------------------------------
+5) Grab the SNP names to make the .MAP file
+awk 'NR==1 {for (i=2;i<=NF;i++) print $i}' chr21.temp.ped > snp.id
+
+6) Create .MAP file (keep separate from snp.id in case we want to filter SNPs and create different MAP file for FBAT):
+awk '{$2=$1 ; $3=0 ; $4=$1; t=sub(/_[0-9]*/,"",$1);y=sub(/[0-9]*_/,"",$4) }1' snp.id > chr21.map
+
+7) Bring in family data from PEDheader.fam. this file is the same as PED.fam, except it has a header:
+join -12 -21 ~/share/sy/GAW19/data/PEDheader.fam chr21.temp.ped > chr21.temp2.ped
+
+8) Remove T2DG from ID's as FBAT does not accept characters, and swap first two columns to get it in the write PLINK format
+awk '{$1=substr($1,5)}1{if ($3==0) $3=0; else $3=substr($3,5)}1{if ($4==0) $4=0; else $4=substr($4,5)}1' chr21.temp2.ped | awk '{ t = $1; $1 = $2; $2 = t; print; }' > chr21.ped
+
+9) Run PLINK to recode the alleles to 0/1/2, since FBAT only accepts this (note that this recodes the phenotypes to 2 which means affected. The --1 flag tells PLINK that control/case status is coded 0/1, and then --recode changes this to 1/2)
+plink.1.90betadev --file chr$1 --missing-genotype X --recode 12 --1 --keep ~/share/sy/GAW19/data/sequenced.id.fbat --remove ~/share/sy/GAW19/data/mztwins.txt --make-bed --out chr$1;
+
+10) Replace missing genotypes with 0 for FBAT
+sed 's/X/0/g' chr21.ped > FBAT21.ped
+
+11) Create FBAT map file which is in the format: 
+marker_name chr# genetic_pos physical_pos sex_link
+awk '{$2=$1 ; $3=0 ; $4=$1; t=sub(/_[0-9]*/,"",$2);y=sub(/[0-9]*_/,"",$4);$5=0 }1' snp.id > FBAT21.map
+
+12) Create PDT map file which is in the format : 
+Chromosome marker_name location
+awk '{$2=$1 ; $3=$1 ; $4=2; t=sub(/_[0-9]*/,"",$1);y=sub(/[0-9]*_/,"",$3);}1' snp.id > PDT21.map
+
+#or use the map file from PLINK (this is better option if you are filtering for HWE or MAF)
+# awk '{ $3=$2 ; $4=2; y=sub(/[0-9]*_/,"",$3);}1' chr$1/chr$1seq_hwe.map > chr$1/PDT$1.map
+
+NOTE THAT PED FILE PRODUCED FOR FBAT CAN BE USED DIRECTLY FOR PDT
+
+
+
+
+
+

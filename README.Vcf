@@ -1,0 +1,6 @@
+README FOR EXTRACTING INFO FROM VCF FILES
+==================================================
+
+1) bcftools query -f '%CHROM;%POS;%ID;%INFO/NS;%INFO/AF;%INFO/DB;%INFO/RSID;%INFO/STR;%INFO/STZ;%INFO/CBR;%INFO/CBZ;%INFO/CSR;%INFO/IOZ;%INFO/IOR;%INFO/AOZ;%INFO/AOI;%INFO/MQ0;%INFO/MQ10;%INFO/MQ20;%INFO/MQ30\n' chr21-seq.vcf > temp
+
+2) cat ~/share/sy/GAW19/data/vcf.header temp > covar21.csv

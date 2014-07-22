@@ -1,0 +1,16 @@
+README FBAT FOR POST PROCESSING TO GET MANHATTAN PLOT
+=======================================================
+
+After the analysis has finished run the following on the outputted files:
+
+I have written a script for the commands below:
+for i in $(seq 1 2 21); do echo "sh ~/share/sy/GAW19/scripts/fbatplot.sh $i all ALL" | qsub -cwd -N run$i -V; done
+
+
+
+1) Remove the unwanted rows
+sed '1,4d;6d' fbat21all | sed '$d' | sed '$d' > fbat21alltemp
+
+2) make csv
+
+3) move to FBAT folder

@@ -1,0 +1,27 @@
+README for PDT Analysis
+=========================================
+
+For the commands below, I have wrapped them into a script called 
+pdt_tdt.sh 
+run:
+for i in $(seq 1 2 21); do echo "sh ~/share/sy/GAW19/scripts/pdt_tdt.sh $i" | qsub -cwd -N run$i -V ; done
+
+
+1) Create pdt control text files. I have written a script for this:
+for i in $(seq 1 2 21); do sh ~/share/sy/GAW19/scripts/makepdtctrl.sh $i chr$i/pdtctrl$i.txt ; done
+
+2) Run the pdt:
+for i in $(seq 1 2 21); do echo "pdt2 chr$i/pdtctrl$i.txt" | qsub -cwd -N run$i -V  ; done
+
+
+3) Delete the second line from each output file:
+for i in $(seq 1 2 21) ; do sed '2d' chr$i/pdt$i\_marker.out > chr$i/pdt$i.out ; done
+
+4) Run makecsv.sh on each of the output files for easy read into R
+for i in $(seq 1 2 21) ; do echo "sh ~/share/sy/GAW19/scripts/makecsv.sh chr$i/pdt$i.out chr$i/pdt$i.csv" | qsub -cwd -N run$i -V ; done
+
+5) Copy files to PDT folder and combine:
+for i in $(seq 1 2 21); do cp chr$i/pdt$i.csv ~/share/sy/GAW19/PDT/ ; done
+
+5.2) From PDT folder
+sh ~/share/sy/GAW19/scripts/combineresults.sh pdt
